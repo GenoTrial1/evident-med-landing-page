@@ -235,7 +235,7 @@ a {
   padding: 40px 24px 80px;
   display: grid;
   gap: 48px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   align-items: center;
 }
 
@@ -351,6 +351,10 @@ a {
   box-shadow: var(--shadow);
   border: 1px solid rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(12px);
+}
+
+.hero-card-hidden {
+  visibility: hidden;
 }
 
 .hero-card-header {
@@ -657,6 +661,7 @@ main {
   .hero {
     margin-top: 40px;
     padding-bottom: 64px;
+    grid-template-columns: 1fr;
   }
 
   .cta-row {
