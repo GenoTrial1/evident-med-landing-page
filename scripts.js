@@ -312,6 +312,7 @@ const wireVimeoPlaybackOnView = () => {
   const overlay = document.querySelector('[data-video-overlay]');
   const volumeToggle = document.querySelector('[data-video-volume-toggle]');
   const volumePanel = document.querySelector('[data-video-volume-panel]');
+  const fullscreenButton = document.querySelector('[data-video-fullscreen]');
   const volumeInput = document.querySelector('[data-video-volume]');
   const progressInput = document.querySelector('[data-video-progress]');
   const timeReadout = document.querySelector('[data-video-time]');
@@ -367,6 +368,20 @@ const wireVimeoPlaybackOnView = () => {
       return;
     }
     volumePanel.classList.toggle('is-open', isOpen);
+  };
+
+  const requestFullscreen = () => {
+    player.requestFullscreen().catch(() => {
+      if (!iframe) {
+        return;
+      }
+      const element = iframe;
+      if (element.requestFullscreen) {
+        element.requestFullscreen().catch(() => {});
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+      }
+    });
   };
 
   const togglePlayback = () => {
@@ -436,7 +451,7 @@ const wireVimeoPlaybackOnView = () => {
     overlay.addEventListener('click', (event) => {
       if (
         event.target instanceof HTMLElement &&
-        event.target.closest('input[type="range"], [data-video-volume-toggle]')
+        event.target.closest('input[type="range"], [data-video-volume-toggle], [data-video-fullscreen]')
       ) {
         return;
       }
@@ -464,6 +479,13 @@ const wireVimeoPlaybackOnView = () => {
           }
         }).catch(() => {});
       }).catch(() => {});
+    });
+  }
+
+  if (fullscreenButton) {
+    fullscreenButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      requestFullscreen();
     });
   }
 

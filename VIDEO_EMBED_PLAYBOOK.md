@@ -13,8 +13,9 @@ Implement a Vimeo video section that:
 - loops continuously
 - uses custom UI overlay (not native Vimeo controls for interaction)
 - supports click-anywhere play/pause
-- has a progress scrubber and a right-side volume icon button
+- has a desktop progress scrubber and a right-side volume icon button
 - opens a vertical volume slider when clicking the volume icon
+- supports a mobile mode with tap-anywhere play/pause, volume button, and fullscreen button
 
 ## Files Involved
 
@@ -57,6 +58,7 @@ Core structure:
 - Vimeo iframe
 - `.video-overlay` custom control layer
   - center paused indicator (`.video-center-indicator`)
+  - fullscreen button (`[data-video-fullscreen]`)
   - bottom controls bar (`.video-bottom-bar`)
     - timeline range (`[data-video-progress]`)
     - time readout (`[data-video-time]`)
@@ -66,7 +68,7 @@ Core structure:
 ### Vimeo iframe URL parameters in use
 
 ```text
-https://player.vimeo.com/video/1172864358?title=0&byline=0&portrait=0&badge=0&controls=0&muted=1&autopause=0
+https://player.vimeo.com/video/1172864455?title=0&byline=0&portrait=0&badge=0&controls=0&muted=1&autopause=0
 ```
 
 Meaning:
@@ -81,15 +83,15 @@ Meaning:
 ### Visual container and frame
 
 - `.video-shell`: glass-like card, border, shadow
-- `.video-frame`: fixed aspect ratio (`3036 / 1908`), rounded corners, overflow hidden
-- iframe uses a 1px crop fix to remove edge artifacts:
+- `.video-frame`: fixed aspect ratio (`3378 / 2124`), rounded corners, overflow hidden
+- iframe uses a tuned crop fix to remove top/edge artifacts:
 
 ```css
 .video-frame iframe {
-  top: -1px;
-  left: -1px;
-  width: calc(100% + 1px);
-  height: calc(100% + 1px);
+  top: -3px;
+  left: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 5px);
 }
 ```
 
@@ -108,6 +110,20 @@ Meaning:
 
 - Grid columns: timeline, time, volume button
 - timeline vertically centered in bar (`align-items: center`)
+
+### Fullscreen button
+
+- `.video-fullscreen-btn` sits in the overlay and calls Vimeo fullscreen
+- click handler uses `event.stopPropagation()` so fullscreen click does not toggle play/pause
+
+### Mobile controls mode (`max-width: 640px`)
+
+- keep click-anywhere play/pause
+- keep center pause indicator visually centered in the video
+- hide timeline and time readout (`.video-progress-wrap`, `.video-time`)
+- keep volume button available
+- show fullscreen button (`.video-fullscreen-btn`)
+- place mobile control cluster at bottom-right using absolute positioning so it does not shift center alignment
 
 ### Volume control styling
 
@@ -155,6 +171,7 @@ Main flow in `scripts.js`:
 - Click-anywhere on overlay toggles play/pause
 - Exception logic:
   - if click target is slider or volume button, ignore overlay toggle
+  - if click target is fullscreen button, ignore overlay toggle
   - if volume panel is open, first click outside controls closes panel only
 
 ### Volume interaction
@@ -177,6 +194,11 @@ Main flow in `scripts.js`:
 - `Space` on focused frame toggles play/pause
 - `Escape` closes volume panel
 
+### Fullscreen interaction
+
+- fullscreen button calls `player.requestFullscreen()`
+- fallback to `iframe.requestFullscreen()` when needed
+
 ## 5) Current UX Rules (as implemented)
 
 - Video autoplays on page load (muted)
@@ -186,6 +208,7 @@ Main flow in `scripts.js`:
 - Center pause indicator visible only when paused
 - Volume icon reflects muted/unmuted state
 - First click outside while volume panel open closes panel (no pause)
+- On mobile, timeline/time are hidden and fullscreen button is shown
 
 ## 6) Known Constraints and Caveats
 
@@ -194,7 +217,7 @@ Main flow in `scripts.js`:
    - some branded/black states can still appear depending on Vimeo behavior
 
 2. Poster source quality matters:
-   - current poster uses `https://vumbnail.com/1172864358.jpg`
+   - current poster uses `https://vumbnail.com/1172864455.jpg`
    - for maximum reliability and brand consistency, prefer a local poster image in `static/`
 
 3. Browser autoplay policy:
@@ -251,7 +274,7 @@ Main flow in `scripts.js`:
 
 ### Edge line artifacts on top/left
 
-- keep iframe 1px crop offset (`top/left -1px`, size `calc(100% + 1px)`)
+- keep tuned iframe crop offset (`top -3px`, `left -2px`, size `calc(100% + 4px)` / `calc(100% + 5px)`)
 
 ## 10) Snag Log (What Broke and Why)
 
@@ -285,9 +308,17 @@ This section is the practical record of issues encountered in this project and t
    - Problem: controls not vertically centered.
    - Resolution: enforce `align-items: center` on `.video-bottom-bar`.
 
-8. 1px black edge artifacts:
-   - Problem: thin black line on top/left in iframe render.
-   - Resolution: iframe crop offset by 1px.
+8. Edge artifacts persisted after 1px crop:
+   - Problem: thin black line remained on top/left in iframe render.
+   - Resolution: increased crop to `top -3px`, `left -2px`, with matching width/height expansion.
+
+9. Mobile controls felt crowded:
+   - Problem: desktop controls (timeline/time) degraded mobile usability.
+   - Resolution: mobile mode keeps only volume + fullscreen buttons, while retaining tap-anywhere play/pause.
+
+10. Mobile pause indicator drifted off true center:
+   - Problem: control layout influenced centered pause indicator placement.
+   - Resolution: mobile control cluster absolutely positioned in bottom-right and overlay set to single-row center layout.
 
 ## 11) One-Shot Implementation Contract
 
@@ -300,8 +331,9 @@ If you want this integrated in one pass on a new project, use this contract:
 5. Start playback in `player.ready()` and set `setLoop(true)`.
 6. Use icon-based volume button with vertical slider panel.
 7. Ensure first click outside open volume panel closes panel only.
-8. Apply 1px iframe crop fix.
-9. Validate on localhost/HTTPS only.
+8. Apply tuned iframe crop fix (`top -3px`, `left -2px`, expanded width/height).
+9. Add mobile control mode (volume + fullscreen; hide timeline/time).
+10. Validate on localhost/HTTPS only.
 
 Acceptance checks:
 
@@ -312,6 +344,7 @@ Acceptance checks:
 - While volume panel is open, one outside click closes panel (no playback toggle).
 - Volume icon switches correctly between muted/unmuted states.
 - No top/left edge artifact line.
+- On mobile, timeline/time are hidden but volume and fullscreen remain accessible.
 
 ---
 
